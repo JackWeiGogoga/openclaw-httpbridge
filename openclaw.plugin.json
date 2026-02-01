@@ -1,0 +1,15 @@
+{
+  "id": "openclaw-httpbridge",
+  "entry": "./index.ts",
+  "name": "HTTP Bridge",
+  "version": "0.1.0",
+  "description": "HTTP inbound + callback outbound channel for OpenClaw",
+  "channels": [
+    "httpbridge"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

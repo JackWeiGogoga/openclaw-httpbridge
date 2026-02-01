@@ -1,0 +1,35 @@
+{
+  "name": "openclaw-httpbridge",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "OpenClaw HTTP bridge channel (HTTP inbound + callback outbound)",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "channel": {
+      "id": "httpbridge",
+      "label": "HTTP Bridge",
+      "selectionLabel": "HTTP Bridge (Webhook + Callback)",
+      "detailLabel": "HTTP Bridge",
+      "docsPath": "/channels/httpbridge",
+      "docsLabel": "httpbridge",
+      "blurb": "Custom HTTP ingress with callback delivery.",
+      "aliases": [
+        "http-bridge",
+        "webhook-bridge"
+      ],
+      "order": 90
+    },
+    "install": {
+      "npmSpec": "openclaw-httpbridge",
+      "defaultChoice": "npm"
+    }
+  },
+  "devDependencies": {
+    "openclaw": "^2026.1.26"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.1.26"
+  }
+}
