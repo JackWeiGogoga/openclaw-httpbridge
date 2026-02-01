@@ -9,6 +9,7 @@ HTTP inbound + callback outbound channel plugin for OpenClaw. Send messages to O
 - Token-based inbound auth
 - Optional callback host allowlist
 - Compatible with OpenClaw channel routing/session behavior
+- Supports `openclaw channels add` and onboarding wizard
 
 ## Requirements
 
@@ -33,7 +34,30 @@ openclaw plugins enable openclaw-httpbridge
 
 ## Configuration
 
-Add to your OpenClaw config:
+### Option A: `openclaw channels add` (recommended for CLI)
+
+```bash
+openclaw channels add --channel httpbridge \
+  --token shared-secret \
+  --webhook-path /httpbridge/inbound \
+  --url http://127.0.0.1:9011/callback
+```
+
+This writes config under `channels.httpbridge` and enables the channel.
+
+### Option B: Onboarding wizard
+
+```bash
+openclaw channels add --channel httpbridge
+```
+
+The wizard prompts for:
+- token
+- webhookPath
+- callbackDefault
+- allowCallbackHosts (optional)
+
+### Option C: Manual config (JSON)
 
 ```json
 {
@@ -48,11 +72,6 @@ Add to your OpenClaw config:
   }
 }
 ```
-
-Notes:
-- `token` is required for inbound auth.
-- `callbackDefault` is used when the request does not include `callbackUrl`.
-- `allowCallbackHosts` is an optional safety allowlist for callback hostnames.
 
 ## Usage
 
@@ -103,6 +122,7 @@ curl -X POST http://127.0.0.1:18789/httpbridge/inbound \
 - Code entry: `index.ts`
 - Channel implementation: `src/channel.ts`
 - Webhook handler: `src/monitor.ts`
+- Onboarding adapter: `src/onboarding.ts`
 
 ## License
 

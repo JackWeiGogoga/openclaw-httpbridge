@@ -3,13 +3,18 @@ import type {
   ChannelPlugin,
   OpenClawConfig,
 } from "openclaw/plugin-sdk";
-import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk";
+import {
+  applyAccountNameToChannelSection,
+  DEFAULT_ACCOUNT_ID,
+  normalizeAccountId,
+} from "openclaw/plugin-sdk";
 
 import {
   resolveHttpBridgeAccount,
   listHttpBridgeAccountIds,
   resolveDefaultHttpBridgeAccountId,
 } from "./accounts.js";
+import { httpbridgeOnboardingAdapter } from "./onboarding.js";
 import { httpbridgeOutbound } from "./outbound.js";
 import { resolveHttpBridgeWebhookPath, startHttpBridgeMonitor } from "./monitor.js";
 import type { ResolvedHttpBridgeAccount } from "./types.js";
@@ -65,6 +70,7 @@ const HttpBridgeChannelSchema = {
 export const httpbridgePlugin: ChannelPlugin<ResolvedHttpBridgeAccount> = {
   id: "httpbridge",
   meta,
+  onboarding: httpbridgeOnboardingAdapter,
   capabilities: {
     chatTypes: ["direct"],
     media: true,
@@ -85,6 +91,71 @@ export const httpbridgePlugin: ChannelPlugin<ResolvedHttpBridgeAccount> = {
       configured: account.configured,
       webhookPath: resolveHttpBridgeWebhookPath(account),
     }),
+  },
+  setup: {
+    resolveAccountId: ({ accountId }) => normalizeAccountId(accountId),
+    applyAccountName: ({ cfg, accountId, name }) =>
+      applyAccountNameToChannelSection({
+        cfg,
+        channelKey: "httpbridge",
+        accountId,
+        name,
+      }),
+    validateInput: ({ input }) => {
+      if (!input.token) {
+        return "HTTP Bridge requires --token for inbound auth.";
+      }
+      if (!input.url && !input.webhookUrl) {
+        return "HTTP Bridge requires --url (callbackDefault).";
+      }
+      return null;
+    },
+    applyAccountConfig: ({ cfg, accountId, input }) => {
+      const namedConfig = applyAccountNameToChannelSection({
+        cfg,
+        channelKey: "httpbridge",
+        accountId,
+        name: input.name,
+      });
+      const webhookPath = input.webhookPath?.trim();
+      const callbackDefault = (input.url ?? input.webhookUrl ?? "").trim();
+      const configPatch = {
+        ...(input.token ? { token: input.token } : {}),
+        ...(webhookPath ? { webhookPath } : {}),
+        ...(callbackDefault ? { callbackDefault } : {}),
+      };
+      if (accountId === DEFAULT_ACCOUNT_ID) {
+        return {
+          ...namedConfig,
+          channels: {
+            ...namedConfig.channels,
+            httpbridge: {
+              ...namedConfig.channels?.httpbridge,
+              enabled: true,
+              ...configPatch,
+            },
+          },
+        } as OpenClawConfig;
+      }
+      return {
+        ...namedConfig,
+        channels: {
+          ...namedConfig.channels,
+          httpbridge: {
+            ...namedConfig.channels?.httpbridge,
+            enabled: true,
+            accounts: {
+              ...namedConfig.channels?.httpbridge?.accounts,
+              [accountId]: {
+                ...namedConfig.channels?.httpbridge?.accounts?.[accountId],
+                enabled: true,
+                ...configPatch,
+              },
+            },
+          },
+        },
+      } as OpenClawConfig;
+    },
   },
   outbound: httpbridgeOutbound,
   messaging: {
