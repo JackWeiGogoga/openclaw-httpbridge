@@ -1,40 +1,40 @@
 # OpenClaw HTTP Bridge
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[English](README.md) | 简体中文
 
-HTTP inbound + callback outbound channel plugin for OpenClaw. Send messages to OpenClaw over HTTP, receive every reply via your `callbackUrl`.
+OpenClaw 的 HTTP 入站 + 回调出站通道插件。通过 HTTP 向 OpenClaw 发送消息，并通过 `callbackUrl` 接收所有回复。
 
-## Features
+## 功能
 
-- HTTP webhook ingress (`/httpbridge/inbound`)
-- Per-conversation callback routing
-- Token-based inbound auth
-- Optional callback host allowlist
-- Compatible with OpenClaw channel routing/session behavior
-- Supports `openclaw channels add` and onboarding wizard
+- HTTP webhook 入站 (`/httpbridge/inbound`)
+- 按会话路由回调
+- 基于 token 的入站鉴权
+- 可选回调主机白名单
+- 兼容 OpenClaw 通道路由/会话行为
+- 支持 `openclaw channels add` 和引导式配置
 
-## Requirements
+## 环境要求
 
 - OpenClaw >= 2026.1.26
 - Node.js 22+
 
-## Install
+## 安装
 
-### Local path
+### 本地路径
 
 ```bash
 openclaw plugins install /path/to/openclaw-httpbridge
 openclaw plugins enable openclaw-httpbridge
 ```
 
-### npm (after publish)
+### npm（发布后）
 
 ```bash
 openclaw plugins install openclaw-httpbridge
 openclaw plugins enable openclaw-httpbridge
 ```
 
-## Workflow (How it works)
+## 工作流（如何运行）
 
 ```mermaid
 sequenceDiagram
@@ -52,9 +52,9 @@ sequenceDiagram
   Bridge->>Callback: POST callbackUrl (each reply)
 ```
 
-## Configuration
+## 配置
 
-### Option A: `openclaw channels add` (recommended for CLI)
+### 方式 A：`openclaw channels add`（CLI 推荐）
 
 ```bash
 openclaw channels add --channel httpbridge \
@@ -63,19 +63,19 @@ openclaw channels add --channel httpbridge \
   --url http://127.0.0.1:9011/callback
 ```
 
-### Option B: Onboarding wizard
+### 方式 B：引导式配置
 
 ```bash
 openclaw channels add --channel httpbridge
 ```
 
-The wizard prompts for:
+引导会提示：
 - token
 - webhookPath
 - callbackDefault
-- allowCallbackHosts (optional)
+- allowCallbackHosts（可选）
 
-### Option C: Manual config (JSON)
+### 方式 C：手动配置（JSON）
 
 ```json
 {
@@ -93,23 +93,23 @@ The wizard prompts for:
 }
 ```
 
-## Configuration reference
+## 配置字段说明
 
-| Field | Type | Required | Description |
+| 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `enabled` | boolean | no | Enable/disable the channel. |
-| `token` | string | yes | Inbound auth token. Requests must include `Authorization: Bearer <token>` or `x-openclaw-token`. |
-| `webhookPath` | string | no | Path for inbound webhook. Default: `/httpbridge/inbound`. |
-| `callbackDefault` | string (URL) | yes | Default callback URL when inbound payload omits `callbackUrl`. |
-| `allowCallbackHosts` | string[] | no | Allowlist for callback hostnames. If set, callbacks to other hosts are rejected. |
-| `callbackTtlMinutes` | number | no | TTL for cached `conversationId -> callbackUrl` mapping (default 1440 minutes). |
-| `maxCallbackEntries` | number | no | Max cached callbacks before eviction (default 10000). |
-| `defaultAccount` | string | no | Default account id when multiple accounts are configured. |
-| `accounts` | object | no | Per-account overrides (same fields as above). |
+| `enabled` | boolean | 否 | 启用/禁用通道。 |
+| `token` | string | 是 | 入站鉴权 token。请求需包含 `Authorization: Bearer <token>` 或 `x-openclaw-token`。 |
+| `webhookPath` | string | 否 | 入站 webhook 路径。默认：`/httpbridge/inbound`。 |
+| `callbackDefault` | string (URL) | 是 | 当入站 payload 未提供 `callbackUrl` 时使用的默认回调地址。 |
+| `allowCallbackHosts` | string[] | 否 | 回调主机白名单；设置后，其他主机的回调将被拒绝。 |
+| `callbackTtlMinutes` | number | 否 | `conversationId -> callbackUrl` 缓存 TTL（默认 1440 分钟）。 |
+| `maxCallbackEntries` | number | 否 | 缓存回调条目上限（默认 10000）。 |
+| `defaultAccount` | string | 否 | 多账号配置时的默认账号 ID。 |
+| `accounts` | object | 否 | 按账号覆盖配置（字段同上）。 |
 
-## Usage
+## 使用
 
-### Inbound request
+### 入站请求
 
 ```bash
 curl -X POST http://127.0.0.1:18789/httpbridge/inbound \
@@ -118,7 +118,7 @@ curl -X POST http://127.0.0.1:18789/httpbridge/inbound \
   -d '{"conversationId":"demo-123","text":"Hello OpenClaw","callbackUrl":"http://127.0.0.1:9011/callback"}'
 ```
 
-### Inbound payload
+### 入站 payload
 
 ```json
 {
@@ -131,7 +131,7 @@ curl -X POST http://127.0.0.1:18789/httpbridge/inbound \
 }
 ```
 
-### Callback payload
+### 回调 payload
 
 ```json
 {
@@ -145,18 +145,18 @@ curl -X POST http://127.0.0.1:18789/httpbridge/inbound \
 }
 ```
 
-## Security
+## 安全建议
 
-- Keep the webhook behind a trusted network or proxy.
-- Use a strong `token`.
-- Restrict `allowCallbackHosts` when possible.
+- 将 webhook 放在受信网络或代理后面。
+- 使用强 `token`。
+- 尽量限制 `allowCallbackHosts`。
 
-## Development
+## 开发
 
-- Code entry: `index.ts`
-- Channel implementation: `src/channel.ts`
-- Webhook handler: `src/monitor.ts`
-- Onboarding adapter: `src/onboarding.ts`
+- 代码入口：`index.ts`
+- 通道实现：`src/channel.ts`
+- Webhook 处理：`src/monitor.ts`
+- 引导式配置适配：`src/onboarding.ts`
 
 ## License
 
