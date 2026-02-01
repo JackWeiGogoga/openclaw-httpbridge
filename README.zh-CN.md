@@ -13,24 +13,20 @@ OpenClaw 的 HTTP 入站 + 回调出站通道插件。通过 HTTP 向 OpenClaw �
 - 兼容 OpenClaw 通道路由/会话行为
 - 支持 `openclaw channels add` 和引导式配置
 
-## 环境要求
-
-- OpenClaw >= 2026.1.26
-- Node.js 22+
-
 ## 安装
 
-### 本地路径
-
-```bash
-openclaw plugins install /path/to/openclaw-httpbridge
-openclaw plugins enable openclaw-httpbridge
-```
-
-### npm（发布后）
+### npm（推荐）
 
 ```bash
 openclaw plugins install openclaw-httpbridge
+openclaw plugins enable openclaw-httpbridge
+```
+
+### 本地安装（git clone）
+
+```bash
+git clone https://github.com/openclaw/openclaw-httpbridge.git
+openclaw plugins install /path/to/openclaw-httpbridge
 openclaw plugins enable openclaw-httpbridge
 ```
 

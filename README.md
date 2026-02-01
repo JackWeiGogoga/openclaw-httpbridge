@@ -13,24 +13,20 @@ HTTP inbound + callback outbound channel plugin for OpenClaw. Send messages to O
 - Compatible with OpenClaw channel routing/session behavior
 - Supports `openclaw channels add` and onboarding wizard
 
-## Requirements
-
-- OpenClaw >= 2026.1.26
-- Node.js 22+
-
 ## Install
 
-### Local path
-
-```bash
-openclaw plugins install /path/to/openclaw-httpbridge
-openclaw plugins enable openclaw-httpbridge
-```
-
-### npm (after publish)
+### npm (recommended)
 
 ```bash
 openclaw plugins install openclaw-httpbridge
+openclaw plugins enable openclaw-httpbridge
+```
+
+### Local path (git clone)
+
+```bash
+git clone https://github.com/openclaw/openclaw-httpbridge.git
+openclaw plugins install /path/to/openclaw-httpbridge
 openclaw plugins enable openclaw-httpbridge
 ```
 
