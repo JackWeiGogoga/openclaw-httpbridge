@@ -7,8 +7,10 @@ This demo shows:
 
 ## 1) Start the callback server
 
+From the plugin directory:
+
 ```bash
-python3 /Users/jacker/data/netease/project/vscode/openclaw-httpbridge/demo-callback-server.py
+python3 demo-callback-server.py
 ```
 
 Expected output:
