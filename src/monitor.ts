@@ -110,6 +110,17 @@ function pickTarget(targets: WebhookTarget[], payload: HttpBridgeInboundPayload)
   return targets[0]!;
 }
 
+function buildConversationSessionKey(params: {
+  agentId: string;
+  accountId: string;
+  conversationId: string;
+}): string {
+  const agentId = params.agentId.trim().toLowerCase();
+  const accountId = params.accountId.trim().toLowerCase();
+  const conversationId = params.conversationId.trim().toLowerCase();
+  return `agent:${agentId}:httpbridge:${accountId}:dm:${conversationId}`;
+}
+
 function validateCallbackUrl(url: string, account: ResolvedHttpBridgeAccount) {
   let parsed: URL;
   try {
@@ -233,6 +244,11 @@ export async function handleHttpBridgeWebhookRequest(
       id: conversationId,
     },
   });
+  const sessionKey = buildConversationSessionKey({
+    agentId: route.agentId,
+    accountId: route.accountId,
+    conversationId,
+  });
 
   const fromLabel = payload.senderName?.trim() || payload.senderId?.trim() || `conv:${conversationId}`;
   const storePath = core.channel.session.resolveStorePath(config.session?.store, {
@@ -241,7 +257,7 @@ export async function handleHttpBridgeWebhookRequest(
   const envelopeOptions = core.channel.reply.resolveEnvelopeFormatOptions(config);
   const previousTimestamp = core.channel.session.readSessionUpdatedAt({
     storePath,
-    sessionKey: route.sessionKey,
+    sessionKey,
   });
   const bodyText = core.channel.reply.formatAgentEnvelope({
     channel: "HTTP Bridge",
@@ -258,7 +274,7 @@ export async function handleHttpBridgeWebhookRequest(
     CommandBody: rawText,
     From: payload.senderId ? `httpbridge:${payload.senderId}` : `httpbridge:conv:${conversationId}`,
     To: `httpbridge:${conversationId}`,
-    SessionKey: route.sessionKey,
+    SessionKey: sessionKey,
     AccountId: route.accountId,
     ChatType: "direct",
     ConversationLabel: fromLabel,
@@ -273,7 +289,7 @@ export async function handleHttpBridgeWebhookRequest(
   void core.channel.session
     .recordSessionMetaFromInbound({
       storePath,
-      sessionKey: ctxPayload.SessionKey ?? route.sessionKey,
+      sessionKey: ctxPayload.SessionKey ?? sessionKey,
       ctx: ctxPayload,
     })
     .catch((err) => {
@@ -295,7 +311,7 @@ export async function handleHttpBridgeWebhookRequest(
               messageId,
               text: payload.text,
               mediaUrls: payload.mediaUrls ?? (payload.mediaUrl ? [payload.mediaUrl] : undefined),
-              sessionKey: route.sessionKey,
+              sessionKey,
               agentId: route.agentId,
               timestamp: Date.now(),
             });
