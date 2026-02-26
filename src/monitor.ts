@@ -4,10 +4,21 @@ import type { OpenClawConfig } from "openclaw/plugin-sdk";
 import { resolveHttpBridgeAccount } from "./accounts.js";
 import { rememberCallback, resolveCallbackUrl } from "./callbacks.js";
 import { getHttpBridgeRuntime } from "./runtime.js";
-import type { HttpBridgeInboundPayload, ResolvedHttpBridgeAccount } from "./types.js";
+import type {
+  HttpBridgeInboundImage,
+  HttpBridgeInboundPayload,
+  ResolvedHttpBridgeAccount,
+} from "./types.js";
 
 const DEFAULT_WEBHOOK_PATH = "/httpbridge/inbound";
 const MAX_BODY_BYTES = 1024 * 1024;
+const DEFAULT_MEDIA_MAX_MB = 20;
+
+type SavedInboundImage = {
+  path: string;
+  contentType?: string;
+  sourceUrl?: string;
+};
 
 export type HttpBridgeRuntimeEnv = {
   log?: (message: string) => void;
@@ -154,6 +165,125 @@ async function postCallback(url: string, payload: unknown) {
   }
 }
 
+function normalizeBase64Payload(raw: string): { mimeType?: string; base64: string } | null {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const dataUrlMatch = /^data:([^;,]+);base64,(.+)$/i.exec(trimmed);
+  if (dataUrlMatch) {
+    return {
+      mimeType: dataUrlMatch[1]?.trim().toLowerCase() || undefined,
+      base64: dataUrlMatch[2]?.trim() || "",
+    };
+  }
+  return { base64: trimmed };
+}
+
+function looksLikeImageMime(mimeType?: string): boolean {
+  return typeof mimeType === "string" && /^image\//i.test(mimeType.trim());
+}
+
+function collectInboundImages(payload: HttpBridgeInboundPayload): HttpBridgeInboundImage[] {
+  const out: HttpBridgeInboundImage[] = [];
+  const push = (value: HttpBridgeInboundImage | null | undefined) => {
+    if (!value || typeof value !== "object") {
+      return;
+    }
+    out.push(value);
+  };
+
+  if (Array.isArray(payload.images)) {
+    for (const item of payload.images) {
+      push(item);
+    }
+  }
+  if (Array.isArray(payload.attachments)) {
+    for (const item of payload.attachments) {
+      push(item);
+    }
+  }
+  if (typeof payload.imageUrl === "string" && payload.imageUrl.trim()) {
+    out.push({ url: payload.imageUrl.trim() });
+  }
+  if (Array.isArray(payload.imageUrls)) {
+    for (const value of payload.imageUrls) {
+      if (typeof value === "string" && value.trim()) {
+        out.push({ url: value.trim() });
+      }
+    }
+  }
+
+  return out;
+}
+
+async function saveInboundImages(params: {
+  images: HttpBridgeInboundImage[];
+  mediaMaxMb: number;
+}): Promise<SavedInboundImage[]> {
+  const core = getHttpBridgeRuntime();
+  const maxBytes = Math.max(1, params.mediaMaxMb) * 1024 * 1024;
+  const saved: SavedInboundImage[] = [];
+
+  for (const image of params.images) {
+    const url = image.url?.trim();
+    const rawBase64 = image.base64?.trim() || image.data?.trim();
+
+    if (url) {
+      const fetched = await core.channel.media.fetchRemoteMedia({ url, maxBytes });
+      const media = await core.channel.media.saveMediaBuffer(
+        fetched.buffer,
+        fetched.contentType,
+        "inbound",
+        maxBytes,
+        image.fileName ?? fetched.fileName,
+      );
+      if (looksLikeImageMime(media.contentType ?? fetched.contentType)) {
+        saved.push({
+          path: media.path,
+          contentType: media.contentType ?? fetched.contentType,
+          sourceUrl: url,
+        });
+      }
+      continue;
+    }
+
+    if (rawBase64) {
+      const normalized = normalizeBase64Payload(rawBase64);
+      if (!normalized?.base64) {
+        continue;
+      }
+      let buffer: Buffer;
+      try {
+        buffer = Buffer.from(normalized.base64, "base64");
+      } catch {
+        continue;
+      }
+      if (buffer.byteLength === 0) {
+        continue;
+      }
+      if (buffer.byteLength > maxBytes) {
+        throw new Error(`image payload exceeds max bytes (${maxBytes})`);
+      }
+      const media = await core.channel.media.saveMediaBuffer(
+        buffer,
+        image.mimeType ?? normalized.mimeType,
+        "inbound",
+        maxBytes,
+        image.fileName,
+      );
+      if (looksLikeImageMime(media.contentType ?? image.mimeType ?? normalized.mimeType)) {
+        saved.push({
+          path: media.path,
+          contentType: media.contentType ?? image.mimeType ?? normalized.mimeType,
+        });
+      }
+    }
+  }
+
+  return saved;
+}
+
 export async function handleHttpBridgeWebhookRequest(
   req: IncomingMessage,
   res: ServerResponse,
@@ -205,9 +335,25 @@ export async function handleHttpBridgeWebhookRequest(
   }
 
   const rawText = (payload.text ?? payload.message ?? "").trim();
-  if (!rawText) {
+  const inboundImages = collectInboundImages(payload);
+
+  let savedImages: SavedInboundImage[] = [];
+  if (inboundImages.length > 0) {
+    try {
+      savedImages = await saveInboundImages({
+        images: inboundImages,
+        mediaMaxMb: account.config.mediaMaxMb ?? DEFAULT_MEDIA_MAX_MB,
+      });
+    } catch (err) {
+      res.statusCode = 400;
+      res.end(err instanceof Error ? err.message : String(err));
+      return true;
+    }
+  }
+
+  if (!rawText && savedImages.length === 0) {
     res.statusCode = 400;
-    res.end("text is required");
+    res.end("text or image is required");
     return true;
   }
 
@@ -259,19 +405,28 @@ export async function handleHttpBridgeWebhookRequest(
     storePath,
     sessionKey,
   });
+
+  const hasMedia = savedImages.length > 0;
+  const rawBody = rawText || (hasMedia ? "<media:attachment>" : "");
   const bodyText = core.channel.reply.formatAgentEnvelope({
     channel: "HTTP Bridge",
     from: fromLabel,
     timestamp: Date.now(),
     previousTimestamp,
     envelope: envelopeOptions,
-    body: rawText,
+    body: rawBody,
   });
+
+  const mediaPaths = savedImages.map((item) => item.path);
+  const mediaSourceUrls = savedImages.map((item) => item.sourceUrl).filter((entry): entry is string =>
+    Boolean(entry?.trim()),
+  );
+  const mediaTypes = savedImages.map((item) => item.contentType ?? "");
 
   const ctxPayload = core.channel.reply.finalizeInboundContext({
     Body: bodyText,
-    RawBody: rawText,
-    CommandBody: rawText,
+    RawBody: rawBody,
+    CommandBody: rawBody,
     From: payload.senderId ? `httpbridge:${payload.senderId}` : `httpbridge:conv:${conversationId}`,
     To: `httpbridge:${conversationId}`,
     SessionKey: sessionKey,
@@ -284,6 +439,12 @@ export async function handleHttpBridgeWebhookRequest(
     Surface: "httpbridge",
     OriginatingChannel: "httpbridge",
     OriginatingTo: `httpbridge:${conversationId}`,
+    MediaPath: mediaPaths[0],
+    MediaType: mediaTypes[0],
+    MediaUrl: mediaSourceUrls[0],
+    MediaPaths: mediaPaths.length > 0 ? mediaPaths : undefined,
+    MediaUrls: mediaSourceUrls.length > 0 ? mediaSourceUrls : undefined,
+    MediaTypes: mediaTypes.length > 0 ? mediaTypes : undefined,
   });
 
   void core.channel.session

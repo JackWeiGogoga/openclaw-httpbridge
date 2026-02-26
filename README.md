@@ -40,7 +40,7 @@ sequenceDiagram
   participant Callback as Your Service
 
   Client->>Bridge: POST /httpbridge/inbound
-  Note over Client,Bridge: {conversationId, text, callbackUrl}
+  Note over Client,Bridge: {conversationId, text?, images?, callbackUrl}
   Bridge->>Bridge: Validate token
   Bridge->>Bridge: Store callbackUrl by conversationId
   Bridge->>OpenClaw: Build inbound context + dispatch
@@ -100,6 +100,7 @@ The wizard prompts for:
 | `allowCallbackHosts` | string[] | no | Allowlist for callback hostnames. If set, callbacks to other hosts are rejected. |
 | `callbackTtlMinutes` | number | no | TTL for cached `conversationId -> callbackUrl` mapping (default 1440 minutes). |
 | `maxCallbackEntries` | number | no | Max cached callbacks before eviction (default 10000). |
+| `mediaMaxMb` | number | no | Max inbound image size per image (MB). Default: 20. |
 | `defaultAccount` | string | no | Default account id when multiple accounts are configured. |
 | `accounts` | object | no | Per-account overrides (same fields as above). |
 
@@ -111,7 +112,7 @@ The wizard prompts for:
 curl -X POST http://127.0.0.1:18789/httpbridge/inbound \
   -H 'Authorization: Bearer shared-secret' \
   -H 'Content-Type: application/json' \
-  -d '{"conversationId":"demo-123","text":"Hello OpenClaw","callbackUrl":"http://127.0.0.1:9011/callback"}'
+  -d '{"conversationId":"demo-123","text":"Hello OpenClaw","images":[{"url":"https://example.com/cat.png"}],"callbackUrl":"http://127.0.0.1:9011/callback"}'
 ```
 
 ### Inbound payload
@@ -120,6 +121,10 @@ curl -X POST http://127.0.0.1:18789/httpbridge/inbound \
 {
   "conversationId": "demo-123",
   "text": "Hello OpenClaw",
+  "images": [
+    { "url": "https://example.com/cat.png" },
+    { "base64": "data:image/png;base64,iVBORw0KGgoAAA...", "mimeType": "image/png" }
+  ],
   "callbackUrl": "http://127.0.0.1:9011/callback",
   "senderId": "user-42",
   "senderName": "Alice",

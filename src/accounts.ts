@@ -45,6 +45,7 @@ export function resolveHttpBridgeAccount(params: {
   const allowCallbackHosts = account.allowCallbackHosts ?? base.allowCallbackHosts;
   const callbackTtlMinutes = account.callbackTtlMinutes ?? base.callbackTtlMinutes;
   const maxCallbackEntries = account.maxCallbackEntries ?? base.maxCallbackEntries;
+  const mediaMaxMb = account.mediaMaxMb ?? base.mediaMaxMb;
 
   return {
     accountId,
@@ -58,6 +59,7 @@ export function resolveHttpBridgeAccount(params: {
       allowCallbackHosts,
       callbackTtlMinutes,
       maxCallbackEntries,
+      mediaMaxMb,
       enabled,
     },
   };
