@@ -40,7 +40,7 @@ sequenceDiagram
   participant Callback as Your Service
 
   Client->>Bridge: POST /httpbridge/inbound
-  Note over Client,Bridge: {conversationId, text, callbackUrl}
+  Note over Client,Bridge: {conversationId, text?, images?, callbackUrl}
   Bridge->>Bridge: Validate token
   Bridge->>Bridge: Store callbackUrl by conversationId
   Bridge->>OpenClaw: Build inbound context + dispatch
@@ -100,6 +100,7 @@ openclaw channels add --channel httpbridge
 | `allowCallbackHosts` | string[] | 否 | 回调主机白名单；设置后，其他主机的回调将被拒绝。 |
 | `callbackTtlMinutes` | number | 否 | `conversationId -> callbackUrl` 缓存 TTL（默认 1440 分钟）。 |
 | `maxCallbackEntries` | number | 否 | 缓存回调条目上限（默认 10000）。 |
+| `mediaMaxMb` | number | 否 | 单张入站图片最大大小（MB），默认 20。 |
 | `defaultAccount` | string | 否 | 多账号配置时的默认账号 ID。 |
 | `accounts` | object | 否 | 按账号覆盖配置（字段同上）。 |
 
@@ -111,7 +112,7 @@ openclaw channels add --channel httpbridge
 curl -X POST http://127.0.0.1:18789/httpbridge/inbound \
   -H 'Authorization: Bearer shared-secret' \
   -H 'Content-Type: application/json' \
-  -d '{"conversationId":"demo-123","text":"Hello OpenClaw","callbackUrl":"http://127.0.0.1:9011/callback"}'
+  -d '{"conversationId":"demo-123","text":"Hello OpenClaw","images":[{"url":"https://example.com/cat.png"}],"callbackUrl":"http://127.0.0.1:9011/callback"}'
 ```
 
 ### 入站 payload
@@ -120,6 +121,10 @@ curl -X POST http://127.0.0.1:18789/httpbridge/inbound \
 {
   "conversationId": "demo-123",
   "text": "Hello OpenClaw",
+  "images": [
+    { "url": "https://example.com/cat.png" },
+    { "base64": "data:image/png;base64,iVBORw0KGgoAAA...", "mimeType": "image/png" }
+  ],
   "callbackUrl": "http://127.0.0.1:9011/callback",
   "senderId": "user-42",
   "senderName": "Alice",

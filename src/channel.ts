@@ -47,6 +47,7 @@ const HttpBridgeChannelSchema = {
     allowCallbackHosts: { type: "array", items: { type: "string" } },
     callbackTtlMinutes: { type: "number" },
     maxCallbackEntries: { type: "number" },
+    mediaMaxMb: { type: "number" },
     defaultAccount: { type: "string" },
     accounts: {
       type: "object",
@@ -61,6 +62,7 @@ const HttpBridgeChannelSchema = {
           allowCallbackHosts: { type: "array", items: { type: "string" } },
           callbackTtlMinutes: { type: "number" },
           maxCallbackEntries: { type: "number" },
+          mediaMaxMb: { type: "number" },
         },
       },
     },
