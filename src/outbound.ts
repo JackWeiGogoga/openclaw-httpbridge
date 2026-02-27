@@ -89,4 +89,29 @@ export const httpbridgeOutbound: ChannelOutboundAdapter = {
       to: conversationId,
     };
   },
+  sendMedia: async (ctx: ChannelOutboundContext): Promise<OutboundDeliveryResult> => {
+    const account = resolveHttpBridgeAccount({ cfg: ctx.cfg, accountId: ctx.accountId });
+    const conversationId = ensureTarget(ctx.to);
+    const callbackUrl = resolveCallbackUrl({ conversationId, account });
+    if (!callbackUrl) {
+      throw new Error("callbackUrl is required (or set channels.httpbridge.callbackDefault)");
+    }
+    const messageId = `httpbridge-${Date.now()}`;
+    await postCallback(callbackUrl, {
+      conversationId,
+      messageId,
+      text: ctx.text,
+      mediaUrls: ctx.mediaUrl ? [ctx.mediaUrl] : [],
+      sessionKey: ctx.sessionKey ?? conversationId,
+      agentId: ctx.agentId ?? "main",
+      timestamp: Date.now(),
+    });
+    return {
+      channel: "httpbridge",
+      messageId,
+      chatId: conversationId,
+      timestamp: Date.now(),
+      to: conversationId,
+    };
+  },
 };
