@@ -13,7 +13,12 @@ const plugin = {
   register(api: OpenClawPluginApi) {
     setHttpBridgeRuntime(api.runtime);
     api.registerChannel({ plugin: httpbridgePlugin });
-    api.registerHttpHandler(handleHttpBridgeWebhookRequest);
+    api.registerHttpRoute({
+      path: "/httpbridge",
+      auth: "plugin",
+      match: "prefix",
+      handler: handleHttpBridgeWebhookRequest,
+    });
   },
 };
 
