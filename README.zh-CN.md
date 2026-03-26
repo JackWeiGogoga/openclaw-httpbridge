@@ -106,6 +106,33 @@ openclaw channels add --channel httpbridge
 
 ## 使用
 
+### 本地回调 demo
+
+为了快速做本地联调，仓库里附带了 [`demo-callback-server.py`](demo-callback-server.py)。
+
+如果插件已经安装在 `~/.openclaw/extensions/openclaw-httpbridge` 下，可以直接运行：
+
+```bash
+python3 ~/.openclaw/extensions/openclaw-httpbridge/demo-callback-server.py
+```
+
+启动后会打印：
+
+```text
+Callback server listening on http://127.0.0.1:9011/callback
+```
+
+之后它会监听插件发出的回调消息，并把收到的每个请求打印出来。
+
+可以配合下面这条命令一起测试：
+
+```bash
+openclaw channels add --channel httpbridge \
+  --token shared-secret \
+  --webhook-path /httpbridge/inbound \
+  --url http://127.0.0.1:9011/callback
+```
+
 ### 入站请求
 
 ```bash

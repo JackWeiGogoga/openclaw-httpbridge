@@ -106,6 +106,33 @@ The wizard prompts for:
 
 ## Usage
 
+### Local callback demo
+
+For a quick local test, this repo includes [`demo-callback-server.py`](demo-callback-server.py).
+
+If the plugin is already installed under `~/.openclaw/extensions/openclaw-httpbridge`, start the demo server with:
+
+```bash
+python3 ~/.openclaw/extensions/openclaw-httpbridge/demo-callback-server.py
+```
+
+After startup it prints:
+
+```text
+Callback server listening on http://127.0.0.1:9011/callback
+```
+
+It will then listen for callback messages from the plugin and print each received request.
+
+You can pair it with:
+
+```bash
+openclaw channels add --channel httpbridge \
+  --token shared-secret \
+  --webhook-path /httpbridge/inbound \
+  --url http://127.0.0.1:9011/callback
+```
+
 ### Inbound request
 
 ```bash

@@ -4,7 +4,7 @@ import type {
   ChannelOutboundPayloadContext,
   OutboundDeliveryResult,
 } from "openclaw/plugin-sdk";
-import { missingTargetError } from "openclaw/plugin-sdk";
+import { missingTargetError } from "openclaw/plugin-sdk/channel-feedback";
 
 import { resolveHttpBridgeAccount } from "./accounts.js";
 import { resolveCallbackUrl } from "./callbacks.js";
