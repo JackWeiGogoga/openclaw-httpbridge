@@ -1,5 +1,5 @@
 import type { OpenClawConfig } from "openclaw/plugin-sdk";
-import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk";
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";
 
 import type { HttpBridgeAccountConfig, HttpBridgeConfig, ResolvedHttpBridgeAccount } from "./types.js";
 
@@ -35,7 +35,9 @@ export function resolveHttpBridgeAccount(params: {
   cfg: OpenClawConfig;
   accountId?: string | null;
 }): ResolvedHttpBridgeAccount {
-  const accountId = (params.accountId ?? resolveDefaultHttpBridgeAccountId(params.cfg)).trim();
+  const accountId = normalizeAccountId(
+    params.accountId ?? resolveDefaultHttpBridgeAccountId(params.cfg),
+  );
   const { account, base } = resolveAccountConfig(params.cfg, accountId);
   const enabledBase = base.enabled !== false;
   const enabled = enabledBase && account.enabled !== false;
@@ -49,7 +51,7 @@ export function resolveHttpBridgeAccount(params: {
 
   return {
     accountId,
-    name: base.defaultAccount === accountId ? "default" : accountId,
+    name: accountId === DEFAULT_ACCOUNT_ID ? "default" : accountId,
     enabled,
     configured: Boolean(token || callbackDefault),
     config: {

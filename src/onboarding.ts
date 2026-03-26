@@ -1,11 +1,10 @@
 import type { OpenClawConfig } from "openclaw/plugin-sdk";
 import {
-  DEFAULT_ACCOUNT_ID,
-  normalizeAccountId,
-  promptAccountId,
   type ChannelOnboardingAdapter,
   type WizardPrompter,
 } from "openclaw/plugin-sdk";
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";
+import { promptAccountId } from "openclaw/plugin-sdk/setup";
 
 import {
   listHttpBridgeAccountIds,
@@ -122,7 +121,7 @@ export const httpbridgeOnboardingAdapter: ChannelOnboardingAdapter = {
   configure: async ({ cfg, prompter, accountOverrides, shouldPromptAccountIds }) => {
     const override = accountOverrides[channel]?.trim();
     const defaultAccountId = resolveDefaultHttpBridgeAccountId(cfg);
-    let accountId = override ? normalizeAccountId(override) : defaultAccountId;
+    let accountId = normalizeAccountId(override ?? defaultAccountId);
 
     if (shouldPromptAccountIds && !override) {
       accountId = await promptAccountId({
